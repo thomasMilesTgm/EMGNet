@@ -11,11 +11,11 @@
 #include <Stepper.h>
 //______________________________________________ Hardware definitions __________________________________________________  //
 
-#define SERIAL_ON 1
+#define SERIAL_ON 0
 
 
 #define STEPS 200
-#define SPEED 5000
+#define SPEED 6500
 #define STEP_SIZE 1
 
 // Motor control pins
@@ -50,6 +50,11 @@
 #define S1_LIGHT_MIN 300
 #define S1_LIGHT_MAX 450
 
+// EMG definitions #signals
+#define S1_ON_THRESHOLD 400
+#define GESTURE_CYCLES 500
+#define STEPSPERLOOP 30000
+
 
 // Motor objects
 //Stepper stepper0(STEPS, MOTOR1_0, MOTOR1_1)  ;
@@ -57,7 +62,7 @@
 //Stepper stepper2(STEPS, MOTOR3_0, MOTOR3_1)  ;
 //Stepper stepper3(STEPS, MOTOR4_0, MOTOR4_1)  ;
 //Stepper stepper4(STEPS, MOTOR5_0, MOTOR5_1)  ;
-int motor_pins[5] = {M0M1, M2, M3, M4};
+int motor_pins[5] = {M0M1, M0M1, M2, M3, M4};
 Stepper motors[5] = {Stepper(STEPS, MOTOR1_0, MOTOR1_1), 
                     Stepper(STEPS, MOTOR2_0, MOTOR2_1), 
                     Stepper(STEPS, MOTOR3_0, MOTOR3_1), 
@@ -100,12 +105,41 @@ int hand_position[5] = {0, 0, 0, 0, 0};
 // average recent EMG values
 double past_emg[2] = {0,0};
 int num_emg = 0;
-int emg_reset = 500; 
+int emg_reset = 5000;
+int sensor_on = 0;
+int actuation_count = 0; 
 //______________________________________________ Control Functions  ________________________________________________________  //
 
 void move_hand(hand_state move_to) {
-
-  for (int i = little; i < thumb; i++) {
+  int j = 0;  
+  int s1 = analogRead(A3);
+  if(move_to == grip) {
+    while(s1 > S1_ON_THRESHOLD){
+      s1 = analogRead(A3);
+      for (int i = little; i < thumb; i++) {
+        // enable the motor and actuate the finger
+       digitalWrite(motor_pins[i], HIGH);
+       for (j = 0; j < STEPSPERLOOP; j++) {
+          motors[i].step(STEP_SIZE);
+       }
+       digitalWrite(motor_pins[i], LOW); // deactivate the motor
+      }
+    }
+  }
+  if(move_to == tripod) {
+    while(s1 > S1_ON_THRESHOLD){
+      s1 = analogRead(A3);
+      for (int i = little; i < thumb; i++) {
+        // enable the motor and actuate the finger
+       digitalWrite(motor_pins[i], HIGH);
+       for (j = 0; j < STEPSPERLOOP; j++) {
+          motors[i].step(-STEP_SIZE);
+       }
+       digitalWrite(motor_pins[i], LOW); // deactivate the motor
+      }
+    }
+  }
+  /**for (int i = little; i < thumb; i++) {
 
       if (grip_defs[move_to][i] > hand_position[i]) {
           // enable the motor and actuate the finger
@@ -127,13 +161,16 @@ void move_hand(hand_state move_to) {
           }
           digitalWrite(motor_pins[i], LOW); // deactivate the motor
       }
-  }
+  }*/
 }
 
 void basic_emg(void) {
     int s0 = analogRead(A2);
     int s1 = analogRead(A3);
-    
+    //Serial.println(s0);
+    //Serial.println(s1);
+
+    /*
     // We average the emg readings until emg_reset is met, then make a decision
     past_emg[0] = (past_emg[0] * num_emg + s0)/(num_emg + 1);
     past_emg[1] = (past_emg[1] * num_emg + s1)/(num_emg + 1);
@@ -172,7 +209,53 @@ void basic_emg(void) {
           move_hand(state);
         } 
         num_emg = 1;
+    }*/
+    // Coded method
+    if(s1 > S1_ON_THRESHOLD || sensor_on || num_emg != 1) {
+      if(!sensor_on && s1 > S1_ON_THRESHOLD) {
+        sensor_on = 1;
+      } else if(sensor_on && s1 < S1_ON_THRESHOLD) {
+        actuation_count++;
+        sensor_on = 0;
+      }
+      num_emg++;
     }
+
+    if (num_emg >= emg_reset) {
+
+        hand_state state;
+   
+        if (actuation_count == 1) {
+          // Grip pattern
+          if (SERIAL_ON) {
+            Serial.println("Registered a Grip input.");
+          }
+          state = grip;
+          move_hand(state);
+          
+        } else if ( actuation_count > 2) {
+          // Flex pattern (drop trigger (fully opens and returns to rest))
+          if (SERIAL_ON) {
+            Serial.println("Registered a halt input.");
+          }
+          //state = drop;
+          //move_hand(state);
+          state = rest;
+          move_hand(rest);
+          
+        } else if ( actuation_count == 2) {
+          // Tripod trigger
+          if (SERIAL_ON) {
+            Serial.println("Registered a open input.");
+          }
+          state = tripod;
+          move_hand(state);
+        } 
+        num_emg = 1;
+        actuation_count = 0;
+        sensor_on = 0;
+    }
+    
 }
 
 void setup() {
@@ -201,13 +284,30 @@ void setup() {
   digitalWrite(M3, LOW);
   digitalWrite(M4, HIGH);
   
-  
+  digitalWrite(motor_pins[0], LOW);
+  digitalWrite(motor_pins[1], LOW);
+  digitalWrite(motor_pins[2], HIGH);
+  digitalWrite(motor_pins[3], LOW);
+  digitalWrite(motor_pins[4], LOW);
 
 }
 
 void loop() {
-
- basic_emg();
+ /*for (int i = 0; i < 4; i++) {
+        // enable the motor and actuate the finger
+       digitalWrite(motor_pins[i], HIGH);
+       for (int j = 0; j < (STEPSPERLOOP); j++) {
+          motors[i].step(STEP_SIZE);
+       }
+       digitalWrite(motor_pins[i], LOW); // deactivate the motor
+      }*/
+      //motors[0].step(STEP_SIZE);
+      //motors[1].step(STEP_SIZE);
+      motors[2].step(STEP_SIZE);
+      
+  // motors[2].step(-STEP_SIZE);
+   
+ //basic_emg();
 
 }
 
