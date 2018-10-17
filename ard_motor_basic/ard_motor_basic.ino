@@ -293,22 +293,36 @@ void setup() {
 }
 
 void loop() {
- /*for (int i = 0; i < 4; i++) {
-        // enable the motor and actuate the finger
-       digitalWrite(motor_pins[i], HIGH);
-       for (int j = 0; j < (STEPSPERLOOP); j++) {
-          motors[i].step(STEP_SIZE);
-       }
-       digitalWrite(motor_pins[i], LOW); // deactivate the motor
-      }*/
-      //motors[0].step(STEP_SIZE);
-      //motors[1].step(STEP_SIZE);
-      motors[2].step(STEP_SIZE);
-      
-  // motors[2].step(-STEP_SIZE);
-   
- //basic_emg();
 
+  //digitalWrite(motor_pins[4], HIGH);
+  //digitalWrite(motor_pins[3], HIGH);
+  //digitalWrite(motor_pins[0], HIGH);
+  //for(int k = 0; k < STEPSPERLOOP; k++) {
+      //motors[4].step(STEP_SIZE);
+      //motors[3].step(STEP_SIZE);  
+  //    motors[0].step(STEP_SIZE);  
+  //}
+  //digitalWrite(motor_pins[4], LOW);
+  //digitalWrite(motor_pins[3], LOW);
+  //digitalWrite(motor_pins[0], HIGH);
+
+  /*
+  for (int i = 0; i < 5; i++) {
+    // enable the motor and actuate the finger
+    digitalWrite(motor_pins[i], HIGH);
+    for (int j = 0; j < (STEPSPERLOOP); j++) {
+       motors[i].step(STEP_SIZE);
+    }
+    digitalWrite(motor_pins[i], LOW); // deactivate the motor
+  }
+  */
+
+  delay(2000);
+  //motors[0].step(STEP_SIZE);
+  //motors[1].step(STEP_SIZE);
+  //motors[2].step(STEP_SIZE);    
+  //motors[2].step(-STEP_SIZE);  
+  //basic_emg();
 }
 
 
